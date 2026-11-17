@@ -10,7 +10,7 @@ const FUNCTION_WORDS = new Set(
   "o a os as um uma uns umas e de da do das dos em no na nos nas ao aos à às por pelo pela pelos pelas com sem para pra pro que se me te lhe lhes vos mas ou já".split(" "));
 const LETTER_NAMES: Record<string, string> = {
   a: "a", b: "bê", c: "cê", d: "dê", e: "é", f: "éfi", g: "gê", h: "agá", i: "i", j: "jota",
-  k: "cá", l: "éli", m: "ême", n: "êni", o: "ó", p: "pê", q: "quê", r: "érri", s: "ési",
+  k: "cá", l: "éli", m: "ême", n: "êni", o: "ó", p: "pê", q: "quê", r: "érri", s: "ésse",
   t: "tê", u: "u", v: "vê", w: "dáblio", x: "xis", y: "ípsilon", z: "zê"};
 const PUNCT_MAP: [string, string][] = [["“", '"'], ["”", '"'], ["‘", "'"], ["’", "'"], ["–", "—"], ["-", "—"], ["[", "("], ["]", ")"],
   ["…", "…"], ["«", '"'], ["»", '"']];
@@ -30,6 +30,14 @@ export class Phonemes {
   get length(): number { return this.symbols.length; }
   toString(): string { return this.symbols.map((s, i) => (this.stress[i] ? "ˈ" : "") + s).join(" "); }
 }
+
+// Siglas em maiúsculas (2 a 5 letras) são soletradas: GPU, CPU, USB. As de SPELLED são soletradas mesmo sendo
+// também uma palavra do léxico (IA, TI); as de AS_WORD são lidas como palavra (PIX, ONU, NASA).
+const SPELLED = new Set("ia ti tv pc rg ui ux ai ue eua".split(" "));
+const AS_WORD = new Set(
+  ("onu otan nasa fifa unesco unicef pix enem sus cep detran ibama inmetro sebrae senai sesc sesi usp unicamp " +
+    "embrapa anatel anvisa aneel inpe opep ok").split(" "));
+const CAPS_RUNS = /[A-Z]{2,}(?![a-z])|[A-Z]?[a-z]+|[A-Z]/g;
 
 export class Dizione {
   readonly lexicon = new Map<string, Phone[]>();
@@ -53,15 +61,29 @@ export class Dizione {
     return new Dizione(lex, table);
   }
 
+  private spell(w: string, useLexicon: boolean): Word {
+    const out: Phone[] = [];
+    for (const c of w) out.push(...this.pronounce(Object.hasOwn(LETTER_NAMES, c) ? LETTER_NAMES[c] : c, useLexicon));
+    // only the last letter name is stressed (GPU = jê-pê-ˈu): stressing each one makes the acronym slow and staccato
+    let last = -1;
+    out.forEach(([, st], i) => { if (st) last = i; });
+    return out.map(([p], i) => [p, i === last ? 1 : 0] as Phone);
+  }
+
   pronounce(word: string, useLexicon = true): Word {
-    const w = word.toLowerCase().normalize("NFC");
-    const hit = useLexicon ? this.lexicon.get(w) : undefined;
-    if (hit) return FUNCTION_WORDS.has(w) ? hit.map(([p]) => [p, 0] as Phone) : hit;
-    if (!/[aeiouáàâãéêíóôõú]/.test(w) && Array.from(w).length > 1 && /^\p{L}+$/u.test(w)) {
-      const out: Phone[] = [];
-      for (const c of w) out.push(...this.pronounce(Object.hasOwn(LETTER_NAMES, c) ? LETTER_NAMES[c] : c, useLexicon));
+    word = word.normalize("NFC");
+    const w = word.toLowerCase();
+    const inLexicon = useLexicon && this.lexicon.has(w);
+    if (/^[A-Z]{2,5}$/.test(word) && !AS_WORD.has(w) && (SPELLED.has(w) || !inLexicon)) return this.spell(w, useLexicon);
+    if (/^[A-Z]{2,5}s$/.test(word) && !AS_WORD.has(w.slice(0, -1))) return [...this.spell(w.slice(0, -1), useLexicon), ["s", 0]]; // GPUs, APIs
+    if (!inLexicon && /^[A-Za-z]+$/.test(word) && /[A-Z]{2}/.test(word) && /[a-z]/.test(word)) {
+      const out: Phone[] = [];                    // WebGPU -> Web + GPU
+      for (const part of word.match(CAPS_RUNS) ?? []) out.push(...this.pronounce(part, useLexicon));
       return out;
     }
+    const hit = useLexicon ? this.lexicon.get(w) : undefined;
+    if (hit) return FUNCTION_WORDS.has(w) ? hit.map(([p]) => [p, 0] as Phone) : hit;
+    if (!/[aeiouáàâãéêíóôõú]/.test(w) && Array.from(w).length > 1 && /^\p{L}+$/u.test(w)) return this.spell(w, useLexicon);
     if (w.includes("-")) {
       const out: Phone[] = [];
       for (const part of w.split("-").filter(Boolean)) out.push(...this.pronounce(part, useLexicon));
