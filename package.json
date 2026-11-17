@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Brazilian Portuguese (pt-BR, not European Portuguese) text to phonemes in TypeScript. Port of the Python dizione-ptbr, with identical output.",
   "type": "module",
-  "license": "Apache-2.0",
+  "license": "Apache-2.0 AND CC-BY-4.0",
   "author": "SemFence · Gustavo Toledo",
   "keywords": [
     "pt-BR",
@@ -34,7 +34,8 @@
   },
   "files": [
     "dist",
-    "data"
+    "data",
+    "NOTICE"
   ],
   "scripts": {
     "build": "tsc",
