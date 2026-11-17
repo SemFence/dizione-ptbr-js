@@ -1,0 +1,50 @@
+{
+  "name": "@semfence/dizione-ptbr",
+  "version": "0.0.1",
+  "description": "Brazilian Portuguese (pt-BR, not European Portuguese) text to phonemes in TypeScript. Port of the Python dizione-ptbr, with identical output.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "SemFence · Gustavo Toledo",
+  "keywords": [
+    "pt-BR",
+    "brazilian-portuguese",
+    "g2p",
+    "phonemizer",
+    "tts"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SemFence/dizione-ptbr-js.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    },
+    "./data/*": "./data/*"
+  },
+  "files": [
+    "dist",
+    "data"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.ts",
+    "sync-data": "node scripts/sync-data.mjs",
+    "prepack": "pnpm build"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
+  }
+}
